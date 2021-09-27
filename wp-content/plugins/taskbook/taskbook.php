@@ -30,16 +30,44 @@
 /**
  * Add capabilities
  */
-register_activation_hook( __FILE__, 'taskbook_add_capabilities' );
-register_deactivation_hook( __FILE__, 'taskbook_remove_capabilities' );
+  register_activation_hook( __FILE__, 'taskbook_add_capabilities' );
+  register_deactivation_hook( __FILE__, 'taskbook_remove_capabilities' );
 
 /**
 * Register Task Logger role
 */
-require_once plugin_dir_path( __FILE__ ) . 'includes/status.php';
+  require_once plugin_dir_path( __FILE__ ) . 'includes/status.php';
 
 
 /**
  * Register CMB2 metaboxes and fields
  */
-require_once plugin_dir_path( __FILE__ ) . 'includes/CMB2-functions.php';
+  require_once plugin_dir_path( __FILE__ ) . 'includes/CMB2-functions.php';
+
+/**
+ * Grant access to tasks only to authenticated users
+ * with either administrator or task logger roles
+ */
+add_action('pre_get_posts', 'taskbook_grant_access');
+
+function taskbook_grant_access($query) {
+
+  if ( !isset($query->query_vars['post_type']) ) {
+    return;
+  }
+
+  if ( $query->query_vars['post_type'] != 'task' ) {
+    return;
+  }
+
+  if ( !defined('REST_REQUEST') ) {
+    return;
+  }
+
+  if ( current_user_can( 'administrator' ) ) {
+    $query->set('post_status', 'private');
+  } elseif (current_user_can( 'task_logger' )) {
+    $query->set('post_status', 'private');
+    $query->set('author', get_current_user_id());
+  }
+}
